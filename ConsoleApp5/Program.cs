@@ -101,19 +101,19 @@ namespace ConsoleApp5
                 {
                     foreach (var sqlStageTime in transactions.OrderBy(m => m.Order))
                     {
-                        if (sqlStageTime.Stage == "Open")
+                        if (sqlStageTime.Stage == "Open Connection")
                         {
                             openTime = sqlStageTime.Time;
                             continue;
                         }
 
-                        if (sqlStageTime.Stage == "Close")
+                        if (sqlStageTime.Stage == "Close Connection")
                         {
                             closeTime = sqlStageTime.Time;
                             continue;
                         }
 
-                        if (sqlStageTime.Stage == "Dispose")
+                        if (sqlStageTime.Stage == "Dispose Connection")
                         {
                             disposeTime = sqlStageTime.Time;
                         }
@@ -281,7 +281,7 @@ namespace ConsoleApp5
             Console.WriteLine("Connection Durations");
             Console.ResetColor();
 
-            foreach (var connectionTimer in connectionTimers.OrderByDescending(m => m.CloseDuration).ThenByDescending(m => m.DisposedDuration).ThenByDescending(m => m.TotalElapsedDuration))
+            foreach (var connectionTimer in connectionTimers.Where(m => m.TotalElapsedDuration != TimeSpan.Zero).OrderBy(m => m.TotalElapsedDuration))
             {
                 Console.WriteLine(connectionTimer.Guid);
                 Console.WriteLine("Closed Duration :" + connectionTimer.CloseDuration);
@@ -289,7 +289,7 @@ namespace ConsoleApp5
                 Console.WriteLine("Elapsed Duration :" + connectionTimer.TotalElapsedDuration);
             }
 
-
+            Console.WriteLine("All Done.......Continue.......");
             Console.ReadLine();
 
             //foreach (var VARIABLE in list)
