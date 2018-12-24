@@ -19,7 +19,10 @@ namespace ConsoleApp5
             List<NotClosed> openNotClosed = new List<NotClosed>();
             List<NotDisposed> openNotDisposed = new List<NotDisposed>();
             List<ConnectionTimers> connectionTimers = new List<ConnectionTimers>();
-            using (StreamReader sr = File.OpenText(@"C:\Users\Madhankumar.dorai\Desktop\PerformanceLogger_20181217.log"))
+            string filePath = args[0];
+            string format = args[1];
+            bool milliSeconds = format == "ms" ? true : false;
+            using (StreamReader sr = File.OpenText(filePath))
             {
                 string TimeStamp = "";
                 string stage = "";
@@ -33,7 +36,7 @@ namespace ConsoleApp5
                 {
                     if (s.Contains("INFO Performance -"))
                     {
-                        TimeStamp = s.Substring(0, s.IndexOf('[') - 5);
+                        TimeStamp = s.Substring(0, s.IndexOf('[') - 1);
                     }
                     else if (s.Contains("Stage -"))
                     {
@@ -121,9 +124,9 @@ namespace ConsoleApp5
                         connectionTimers.Add(new ConnectionTimers
                         {
                             Guid = key,
-                            CloseDuration = closeTime - openTime,
-                            DisposedDuration = disposeTime - closeTime,
-                            TotalElapsedDuration = disposeTime - openTime
+                            CloseDuration = closeTime.Subtract(openTime),
+                            DisposedDuration = disposeTime.Subtract(closeTime),
+                            TotalElapsedDuration = disposeTime.Subtract(openTime)
                         });
 
                     }
@@ -281,34 +284,31 @@ namespace ConsoleApp5
             Console.WriteLine("Connection Durations");
             Console.ResetColor();
 
-            foreach (var connectionTimer in connectionTimers.Where(m => m.TotalElapsedDuration != TimeSpan.Zero).OrderBy(m => m.TotalElapsedDuration))
+            if (milliSeconds)
             {
-                Console.WriteLine(connectionTimer.Guid);
-                Console.WriteLine("Closed Duration :" + connectionTimer.CloseDuration);
-                Console.WriteLine("Disposed Duration :" + connectionTimer.DisposedDuration);
-                Console.WriteLine("Elapsed Duration :" + connectionTimer.TotalElapsedDuration);
+                foreach (var connectionTimer in connectionTimers.Where(m => m.TotalElapsedDuration.Milliseconds != 0)
+                    .OrderBy(m => m.TotalElapsedDuration.Milliseconds))
+                {
+                    Console.WriteLine(connectionTimer.Guid);
+                    Console.WriteLine("Closed Duration :" + connectionTimer.CloseDuration.Milliseconds + "ms");
+                    Console.WriteLine("Disposed Duration :" + connectionTimer.DisposedDuration.Milliseconds + "ms");
+                    Console.WriteLine("Elapsed Duration :" + connectionTimer.TotalElapsedDuration.Milliseconds + "ms");
+                }
+            }
+            else
+            {
+                foreach (var connectionTimer in connectionTimers.Where(m => m.TotalElapsedDuration.Seconds != 0)
+                    .OrderBy(m => m.TotalElapsedDuration.Seconds))
+                {
+                    Console.WriteLine(connectionTimer.Guid);
+                    Console.WriteLine("Closed Duration :" + connectionTimer.CloseDuration.Seconds +"sec");
+                    Console.WriteLine("Disposed Duration :" + connectionTimer.DisposedDuration.Seconds + "sec");
+                    Console.WriteLine("Elapsed Duration :" + connectionTimer.TotalElapsedDuration.Seconds + "sec");
+                }
             }
 
             Console.WriteLine("All Done.......Continue.......");
             Console.ReadLine();
-
-            //foreach (var VARIABLE in list)
-            //{
-            //    string iden = VARIABLE.Substring(VARIABLE.IndexOf("ConnectionId - ") + 15, 36);
-            //    Guid identifier = Guid.Empty;
-            //    if(Guid.TryParse(iden, out identifier))
-            //    {
-            //        if (connDictionary.ContainsKey(identifier))
-            //        {
-            //            string stag = VARIABLE.Substring(VARIABLE.IndexOf("- Stage - ") + 10, VARIABLE.IndexOf(" ConnectionId - "));
-            //            connDictionary[identifier].Add(stag);
-            //        }
-            //        else
-            //        {
-            //            connDictionary.Add(identifier, new List<string>{ VARIABLE.Substring(VARIABLE.IndexOf("- Stage - ") + 10, VARIABLE.IndexOf(" ConnectionId - ")) });
-            //        }
-            //    }
-            //}
 
         }
     }
