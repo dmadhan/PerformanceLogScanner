@@ -93,6 +93,7 @@ namespace ConsoleApp5
                 DateTime openTime = new DateTime();
                 DateTime closeTime = new DateTime();
                 DateTime disposeTime = new DateTime();
+                string root = "";
 
                 var openTransactionCount = transactions.Count(m => m.Stage == "Open Connection");
                 var closedTransactionCount = transactions.Count(m => m.Stage == "Close Connection");
@@ -107,6 +108,7 @@ namespace ConsoleApp5
                         if (sqlStageTime.Stage == "Open Connection")
                         {
                             openTime = sqlStageTime.Time;
+                            root = sqlStageTime.Root;
                             continue;
                         }
 
@@ -126,7 +128,8 @@ namespace ConsoleApp5
                             Guid = key,
                             CloseDuration = closeTime.Subtract(openTime),
                             DisposedDuration = disposeTime.Subtract(closeTime),
-                            TotalElapsedDuration = disposeTime.Subtract(openTime)
+                            TotalElapsedDuration = disposeTime.Subtract(openTime),
+                            Root = root
                         });
 
                     }
@@ -183,14 +186,15 @@ namespace ConsoleApp5
             Console.ReadLine();
             foreach (var unMaintainedConnection in opeNotClosedNotDisposed)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
+                Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine("UnManaged Connections");
                 Console.WriteLine(unMaintainedConnection.Guid);
-                Console.ResetColor();
+                Console.ForegroundColor = ConsoleColor.Red;
                 foreach (var msg in unMaintainedConnection.Message)
                 {
                     Console.WriteLine(msg);
                 }
+                Console.ResetColor();
             }
 
             var consolidatedRes = opeNotClosedNotDisposed.SelectMany(m => m.Message).ToList();
@@ -199,11 +203,12 @@ namespace ConsoleApp5
                              where p != "Stage connections open but not closed and disposed"
                              group p by p;
 
+            Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("Consolidated messages");
 
             foreach (var c in groupedRes.OrderByDescending(m => m.Count()))
             {
-                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(c.FirstOrDefault());
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Count: " + c.Count());
@@ -217,14 +222,15 @@ namespace ConsoleApp5
 
             foreach (var unMaintainedConnection in openNotClosed)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
+                Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine("Open but not closed");
                 Console.WriteLine(unMaintainedConnection.Guid);
-                Console.ResetColor();
+                Console.ForegroundColor = ConsoleColor.Red;
                 foreach (var msg in unMaintainedConnection.Message)
                 {
                     Console.WriteLine(msg);
                 }
+                Console.ResetColor();
             }
 
             var consolidatedRes2 = openNotClosed.SelectMany(m => m.Message).ToList();
@@ -237,7 +243,7 @@ namespace ConsoleApp5
 
             foreach (var c in groupedRes2.OrderByDescending(m => m.Count()))
             {
-                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(c.FirstOrDefault());
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Count: " + c.Count());
@@ -251,15 +257,16 @@ namespace ConsoleApp5
 
             foreach (var unMaintainedConnection in openNotDisposed)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
+                Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine("Open but not disposed");
                 Console.WriteLine(unMaintainedConnection.Guid);
-                Console.ResetColor();
+                Console.ForegroundColor = ConsoleColor.Red;
 
                 foreach (var msg in unMaintainedConnection.Message)
                 {
                     Console.WriteLine(msg);
                 }
+                Console.ResetColor();
             }
 
             var consolidatedRes3 = openNotDisposed.SelectMany(m => m.Message).ToList();
@@ -272,7 +279,7 @@ namespace ConsoleApp5
 
             foreach (var c in groupedRes3.OrderByDescending(m => m.Count()))
             {
-                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(c.FirstOrDefault());
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Count: " + c.Count());
@@ -280,19 +287,24 @@ namespace ConsoleApp5
 
             Console.ResetColor();
 
-            Console.ForegroundColor = ConsoleColor.Red;
+            Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("Connection Durations");
-            Console.ResetColor();
 
+            int width = 100;
+
+            Console.WriteLine(new string('-', width+9));
+            Console.WriteLine("Id" + new string(' ', 38) + "| Closed Duration" + new string(' ',4) + "| Disposed Duration" + new string(' ', 2) + "| Elapsed Duration" + new string(' ', 3) + "| Root");
+            Console.WriteLine(new string('-', width+9));
+            Console.ForegroundColor = ConsoleColor.Red;
             if (milliSeconds)
             {
                 foreach (var connectionTimer in connectionTimers.Where(m => m.TotalElapsedDuration.Milliseconds != 0)
                     .OrderBy(m => m.TotalElapsedDuration.Milliseconds))
                 {
-                    Console.WriteLine(connectionTimer.Guid);
-                    Console.WriteLine("Closed Duration :" + connectionTimer.CloseDuration.Milliseconds + "ms");
-                    Console.WriteLine("Disposed Duration :" + connectionTimer.DisposedDuration.Milliseconds + "ms");
-                    Console.WriteLine("Elapsed Duration :" + connectionTimer.TotalElapsedDuration.Milliseconds + "ms");
+                    Console.WriteLine(connectionTimer.Guid + new string(' ', 4) + "| "+ connectionTimer.CloseDuration.Milliseconds + "ms" + new string(' ', Math.Abs((connectionTimer.CloseDuration.Milliseconds + "ms").Length-19)) 
+                                      + "| " + connectionTimer.DisposedDuration.Milliseconds + "ms" + new string(' ', Math.Abs((connectionTimer.DisposedDuration.Milliseconds + "ms").Length - 19))
+                                      + "| " + connectionTimer.TotalElapsedDuration.Milliseconds + "ms" + new string(' ', Math.Abs((connectionTimer.TotalElapsedDuration.Milliseconds + "ms").Length - 19))
+                                      + "| " + connectionTimer.Root);
                 }
             }
             else
@@ -300,12 +312,15 @@ namespace ConsoleApp5
                 foreach (var connectionTimer in connectionTimers.Where(m => m.TotalElapsedDuration.Seconds != 0)
                     .OrderBy(m => m.TotalElapsedDuration.Seconds))
                 {
+                    Console.WriteLine(connectionTimer.Guid + new string(' ', 4) + "| " + connectionTimer.CloseDuration.Seconds + "sec" + new string(' ', Math.Abs((connectionTimer.CloseDuration.Seconds + "sec").Length - 19))
+                                      + "| " + connectionTimer.DisposedDuration.Seconds + "sec" + new string(' ', Math.Abs((connectionTimer.DisposedDuration.Seconds + "sec").Length - 19))
+                                      + "| " + connectionTimer.TotalElapsedDuration.Seconds + "sec" + new string(' ', Math.Abs((connectionTimer.TotalElapsedDuration.Seconds + "sec").Length - 19))
+                                      + "| " + connectionTimer.Root);
                     Console.WriteLine(connectionTimer.Guid);
-                    Console.WriteLine("Closed Duration :" + connectionTimer.CloseDuration.Seconds +"sec");
-                    Console.WriteLine("Disposed Duration :" + connectionTimer.DisposedDuration.Seconds + "sec");
-                    Console.WriteLine("Elapsed Duration :" + connectionTimer.TotalElapsedDuration.Seconds + "sec");
                 }
             }
+
+            Console.ResetColor();
 
             Console.WriteLine("All Done.......Continue.......");
             Console.ReadLine();
@@ -358,5 +373,6 @@ namespace ConsoleApp5
         public TimeSpan CloseDuration { get; set; }
         public TimeSpan DisposedDuration { get; set; }
         public TimeSpan TotalElapsedDuration { get; set; }
+        public string Root { get; set; }
     }
 }
